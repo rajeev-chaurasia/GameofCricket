@@ -1,58 +1,68 @@
 package com.tekion.cricketGame.playerService.repo;
 
-import com.tekion.cricketGame.playerService.repo.PlayerRepository;
-import com.tekion.cricketGame.service.ConnectionService;
-import com.tekion.cricketGame.service.ConnectionServiceImpl;
+import com.tekion.cricketGame.playerService.bean.PlayerBean;
+import com.tekion.cricketGame.playerService.bean.PlayerStatsBean;
+import com.tekion.cricketGame.playerService.dto.PlayerMapper;
+import com.tekion.cricketGame.playerService.dto.PlayerStatsMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
-import java.sql.*;
+import java.util.List;
 
+@Repository
 public class PlayerRepositoryImpl implements PlayerRepository {
-    ConnectionService connectionService = new ConnectionServiceImpl();
-    Connection connection;
 
-    public PlayerRepositoryImpl() {
-        try {
-            connection = connectionService.getConnection();
-        }catch(SQLException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Override
+    public void createPlayer(int teamId, String playerName) {
+        String sqlStatement = "INSERT INTO player(teamId , playerName , createdTime , modifiedTime , isDeleted) values(?, ? , ? , ? , ?)";
+        jdbcTemplate.update(sqlStatement , teamId , playerName , System.currentTimeMillis() , System.currentTimeMillis() , false);
     }
 
-    public Boolean ifCheckPlayerExists(int teamId , String playerName){
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT playerId , teamId , playerName FROM player WHERE teamId = ? AND playerName = ?");
-            statement.setInt(1 , teamId);
-            statement.setString(2 , playerName);
-            ResultSet rs = statement.executeQuery();
-            return rs.next();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+    @Override
+    public boolean ifCheckPlayerExists(int teamId , String playerName) {
+        String sqlStatement = "SELECT EXISTS(SELECT * FROM player WHERE teamId = ? AND playerName = ?)";
+        return jdbcTemplate.queryForObject(sqlStatement , Boolean.class , teamId , playerName);
     }
 
-    public void createPlayer(int teamId , String playerName){
-        try {
-            PreparedStatement statement = connection.prepareStatement("INSERT INTO player(teamId , playerName) values(? , ?)");
-            statement.setInt(1 , teamId);
-            statement.setString(2 , playerName);
-            statement.execute();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    @Override
+    public boolean checkIfPlayerIdExists(int playerId) {
+        String sqlStatement = "SELECT EXISTS(SELECT * FROM player WHERE playerId = ? )";
+        return jdbcTemplate.queryForObject(sqlStatement , Boolean.class , playerId);
     }
 
-    public int getIdByTeamIdAndPlayerName(int teamId , String playerName){
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT playerId WHERE teamId = ? AND playerName = ? ");
-            statement.setInt(1 , teamId);
-            statement.setString(2 , playerName);
-            ResultSet rs = statement.executeQuery();
-            rs.next();
-            return rs.getInt(1);
-        }catch (SQLException e){
-            e.printStackTrace();
-            return -1;
-        }
+    @Override
+    public int getPlayerIdByTeamIdAndPlayerName(int teamId, String playerName) {
+        String sqlStatement = "SELECT playerId from player WHERE teamId = ? AND playerName = ?";
+        return jdbcTemplate.queryForObject(sqlStatement , Integer.class , teamId , playerName);
+    }
+
+    @Override
+    public PlayerBean getPlayerDetails(int playerId){
+        String sqlStatement = "SELECT * FROM player WHERE playerId = ? ";
+        return jdbcTemplate.queryForObject(sqlStatement , new PlayerMapper() , playerId);
+    }
+
+    @Override
+    public List<PlayerBean> getAllPlayersByTeamId(int teamId){
+        String sqlStatement = "SELECT * from player WHERE teamId = ?";
+        return jdbcTemplate.query(sqlStatement , new PlayerMapper() , teamId);
+    }
+
+    @Override
+    public void addPlayerStat(PlayerStatsBean playerStatsBean){
+        String sqlStatement = "INSERT INTO player_stats(playerId , matchId , runScored , ballsPlayed , createdTime , modifiedTime , isDeleted) " +
+                "values(? , ? , ? , ? , ? , ? , ?)";
+        jdbcTemplate.update(sqlStatement , playerStatsBean.getPlayerId() , playerStatsBean.getMatchId() , playerStatsBean.getRunScored() , playerStatsBean.getBallsPlayed()
+         , System.currentTimeMillis() , System.currentTimeMillis() , false);
+    }
+
+    @Override
+    public PlayerStatsBean fetchPlayerStatsByMatchId(int playerId , int matchId){
+        String sqlStatement = "SELECT * FROM player_stats WHERE playerId = ? AND matchId = ?";
+        return jdbcTemplate.queryForObject(sqlStatement , new PlayerStatsMapper() , playerId , matchId);
     }
 }

@@ -1,9 +1,13 @@
 package com.tekion.cricketGame.teamService;
 
-import com.tekion.cricketGame.cricketMatchService.dto.MatchDto;
+import com.tekion.cricketGame.cricketMatchService.dto.CricketMatchDto;
+import com.tekion.cricketGame.teamService.bean.TeamBean;
+import org.springframework.stereotype.Service;
 
+@Service
 public interface TeamService {
-    String inputTeam1Details();
-    String inputTeam2Details();
-    void setPlayerDetails(MatchDto cricketMatch);
+    String loadTeamDetails(String teamName);
+    CricketMatchDto setPlayerDetails(CricketMatchDto cricketMatch);
+    boolean checkIfTeamIdExists(int teamId);
+    TeamBean getTeamDetails(int teamId);
 }

@@ -2,73 +2,105 @@ package com.tekion.cricketGame.scoreBoardService;
 
 import com.tekion.cricketGame.constants.MatchConstants;
 import com.tekion.cricketGame.constants.RunConstants;
+import com.tekion.cricketGame.scoreBoardService.bean.MatchScoreBoardBean;
 import com.tekion.cricketGame.scoreBoardService.dto.ScoreBoardDto;
+import com.tekion.cricketGame.scoreBoardService.repo.ScoreBoardRepository;
 import com.tekion.cricketGame.teamService.dto.TeamDto;
+import com.tekion.cricketGame.utils.BeanMapperFromDto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ScoreBoardServiceImpl implements ScoreBoardService {
-    ScoreBoardDto scoreBoard;
 
-    public void setScoreBoard(int matchOvers){
-        scoreBoard = new ScoreBoardDto(matchOvers);
+    @Autowired
+    private ScoreBoardRepository scoreBoardRepository;
+
+    @Autowired
+    private BeanMapperFromDto beanMapperFromDto;
+
+    @Override
+    public void createScoreBoard(ScoreBoardDto scoreBoard, int matchId) {
+        MatchScoreBoardBean scoreBoardBean = beanMapperFromDto.mapScoreBoardDtoToBean(scoreBoard , matchId);
+        scoreBoardRepository.createScoreBoard(scoreBoardBean);
     }
 
-    public void displayScoreBoard(int inning){
+    @Override
+    public void displayScoreBoard(ScoreBoardDto scoreBoard , int inning){
          if(inning == MatchConstants.FIRST_INNING){
-             displayScoreFirstInning();
+             displayScoreFirstInning(scoreBoard);
          }else{
-            displayScoreSecondInning();
+            displayScoreSecondInning(scoreBoard);
          }
     }
 
-//    public void displayPerBallScoreboard(int inning){
-//        if(inning == MatchConstants.FIRST_INNING){
-//            scoreBoard.firstInningTotalBallsInfo.get(scoreBoard.getFirstInningBallsCompleted());
-//        }
-//    }
-
-    public void setPlayingTeams(TeamDto teamBattingFirst , TeamDto teamFieldingFirst){
+    @Override
+    public ScoreBoardDto setPlayingTeams(ScoreBoardDto scoreBoard , TeamDto teamBattingFirst , TeamDto teamFieldingFirst){
         scoreBoard.setTeamBattingFirst(teamBattingFirst);
         scoreBoard.setTeamFieldingFirst(teamFieldingFirst);
+        return scoreBoard;
     }
 
-    public TeamDto getTeamBattingFirst() {
+    @Override
+    public TeamDto getTeamBattingFirst(ScoreBoardDto scoreBoard) {
         return scoreBoard.getTeamBattingFirst();
     }
 
-    public TeamDto getTeamFieldingFirst(){
+    @Override
+    public TeamDto getTeamFieldingFirst(ScoreBoardDto scoreBoard){
         return scoreBoard.getTeamFieldingFirst();
     }
 
-    public void updateScore(int ballScore , int inning){
+    @Override
+    public ScoreBoardDto updateScore(ScoreBoardDto scoreBoard , int ballScore , int inning){
         if(inning == MatchConstants.FIRST_INNING)
-            updateScoreFirstInning(ballScore);
+            scoreBoard = updateScoreFirstInning(scoreBoard , ballScore);
         else
-            updateScoreSecondInning(ballScore);
+            scoreBoard = updateScoreSecondInning(scoreBoard , ballScore);
+        return scoreBoard;
     }
 
-    public int getTeamScore(int inning){
+    @Override
+    public int getTeamScore(ScoreBoardDto scoreBoard , int inning){
         if(inning == MatchConstants.FIRST_INNING)
             return scoreBoard.getFirstInningScore();
         else
             return scoreBoard.getSecondInningScore();
     }
 
-    public int getTeamWickets(int inning){
+    @Override
+    public int getTeamWickets(ScoreBoardDto scoreBoard , int inning){
         if(inning == MatchConstants.FIRST_INNING)
             return scoreBoard.getFirstInningWickets();
         else
             return scoreBoard.getSecondInningWickets();
     }
 
-    public void updateTargetScore(){
+    @Override
+    public ScoreBoardDto updateTargetScore(ScoreBoardDto scoreBoard){
         scoreBoard.setTargetScore();
+        return scoreBoard;
     }
 
-    public int getTargetScore(){
+    @Override
+    public int getTargetScore(ScoreBoardDto scoreBoard){
         return scoreBoard.getTargetScore();
     }
 
-    private void displayScoreFirstInning(){
+    @Override
+    public TeamDto getHighestScoringTeam(ScoreBoardDto scoreBoard){
+         if(scoreBoard.getFirstInningScore() > scoreBoard.getSecondInningScore())
+             return scoreBoard.getTeamBattingFirst();
+         else
+             return scoreBoard.getTeamFieldingFirst();
+    }
+
+    @Override
+    public MatchScoreBoardBean getScoreBoardDetails(int matchId){
+        return scoreBoardRepository.fetchScoreBoardDetailsByMatchId(matchId);
+    }
+
+    private void displayScoreFirstInning(ScoreBoardDto scoreBoard){
         System.out.printf("\n%s: %d/%d (%d.%d Overs)%n",
                 scoreBoard.getTeamBattingFirst().getTeamName(),
                 scoreBoard.getFirstInningScore(),
@@ -77,7 +109,7 @@ public class ScoreBoardServiceImpl implements ScoreBoardService {
                 scoreBoard.getSecondInningBallsCompleted()%6);
     }
 
-    private void displayScoreSecondInning(){
+    private void displayScoreSecondInning(ScoreBoardDto scoreBoard){
         System.out.printf("\n%s: %d/%d (%d.%d Overs)%n",
                 scoreBoard.getTeamFieldingFirst().getTeamName(),
                 scoreBoard.getSecondInningScore(),
@@ -86,20 +118,22 @@ public class ScoreBoardServiceImpl implements ScoreBoardService {
                 scoreBoard.getSecondInningBallsCompleted()%6);
     }
 
-    private void updateScoreFirstInning(int ballScore){
+    private ScoreBoardDto updateScoreFirstInning(ScoreBoardDto scoreBoard , int ballScore){
         if(ballScore == RunConstants.WICKET){
             scoreBoard.fallWicketFirstInning();
         }else{
             scoreBoard.updateFirstInningScore(ballScore);
         }
+        return scoreBoard;
     }
 
-    private void updateScoreSecondInning(int ballScore){
+    private ScoreBoardDto updateScoreSecondInning(ScoreBoardDto scoreBoard , int ballScore){
         if(ballScore == RunConstants.WICKET){
             scoreBoard.fallWicketSecondInning();
         }else{
             scoreBoard.updateSecondInningScore(ballScore);
         }
+        return scoreBoard;
     }
 
 
